@@ -3,8 +3,9 @@
 Day 2 — AI Product Scoping (Vin Smart Future)
 Lightweight Prompt Boundary Prototyping
 
-Nhóm: [ĐIỀN TÊN NHÓM]
-Học viên: Nguyễn Minh Kiệt
+Nhóm: T004
+Học viên: Nguyễn Minh Kiệt (02373)
+Thanh Vien: Nguyen Nhu Thanh (02487), Dao Minh Hieu (02561), Dang The Vinh (02587)
 
 --------------------------------------------------------------------------
 GHI CHÚ VỀ PHẠM VI (đọc trước khi chấm):
