@@ -3,9 +3,8 @@
 Day 2 — AI Product Scoping (Vin Smart Future)
 Lightweight Prompt Boundary Prototyping
 
-Nhóm: T004
-Học viên: Nguyễn Minh Kiệt (02373)
-Thanh Vien: Nguyen Nhu Thanh (02487), Dao Minh Hieu (02561), Dang The Vinh (02587)
+Nhóm: [ĐIỀN TÊN NHÓM]
+Học viên: Nguyễn Minh Kiệt
 
 --------------------------------------------------------------------------
 GHI CHÚ VỀ PHẠM VI (đọc trước khi chấm):
@@ -39,7 +38,10 @@ if (sys.stdout.encoding or "").lower() != "utf-8":
         pass
 
 # Standard Model Identifier
-GEMINI_MODEL = "gemini-2.5-flash"
+# Ghi chú: worksheet chỉ định "gemini-2.5-flash", nhưng model này đã ngừng cấp phát
+# cho API key mới (lỗi 404: "no longer available to new users"). Google khuyến nghị
+# chuyển sang gemini-3.6-flash. Có thể override bằng biến môi trường GEMINI_MODEL.
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
 
 # ===========================================================================
 # 🛡️ Operational Boundaries to Enforce via System Prompt:
@@ -113,16 +115,34 @@ def evaluate_prompt(user_input: str, system_prompt: str = SYSTEM_PROMPT) -> str:
         from google.genai import types
 
         client = genai.Client(api_key=api_key)
-        config = types.GenerateContentConfig(
-            system_instruction=system_prompt,
-            temperature=0.0,                      # tất định để test ranh giới lặp lại được
-            response_mime_type="application/json",  # ép structured output
-            thinking_config=types.ThinkingConfig(thinking_budget=0),  # giảm độ trễ
-        )
-        resp = client.models.generate_content(
-            model=GEMINI_MODEL, contents=user_input, config=config
-        )
-        return resp.text or ""
+
+        base_kwargs = {
+            "system_instruction": system_prompt,
+            "response_mime_type": "application/json",  # ép structured output
+        }
+
+        # Gemini 3.x thay 'thinking_budget' (số) bằng 'thinking_level' ("medium"/"high").
+        # Thử cấu hình đầy đủ trước; nếu SDK/model không nhận thì lùi về cấu hình tối thiểu.
+        attempts = []
+        try:
+            attempts.append(types.GenerateContentConfig(
+                thinking_config=types.ThinkingConfig(thinking_level="medium"),
+                **base_kwargs,
+            ))
+        except Exception:
+            pass
+        attempts.append(types.GenerateContentConfig(**base_kwargs))
+
+        last_exc = None
+        for config in attempts:
+            try:
+                resp = client.models.generate_content(
+                    model=GEMINI_MODEL, contents=user_input, config=config
+                )
+                return resp.text or ""
+            except Exception as exc:
+                last_exc = exc
+        raise last_exc
     except ImportError:
         pass
 
@@ -133,7 +153,7 @@ def evaluate_prompt(user_input: str, system_prompt: str = SYSTEM_PROMPT) -> str:
     model = genai_legacy.GenerativeModel(
         model_name=GEMINI_MODEL,
         system_instruction=system_prompt,
-        generation_config={"temperature": 0.0, "response_mime_type": "application/json"},
+        generation_config={"response_mime_type": "application/json"},
     )
     return model.generate_content(user_input).text or ""
 
